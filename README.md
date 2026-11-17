@@ -9,12 +9,12 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. The SQLite database (`data/coy.db`) is created and seeded with 36 profiles on first request. To reset all swipes and matches, stop the server and delete the `data` folder.
+Open http://localhost:3000. No native dependencies and no setup. Swipes and matches are saved to `data/db.json`, which is created on the first swipe. To reset the demo, stop the server and delete the `data` folder.
 
 ## Stack
 
 - Next.js (App Router) + API routes
-- SQLite via `better-sqlite3`
+- JSON-file persistence (`data/db.json`), all storage logic in `lib/store.js`
 - framer-motion for drag gestures and animations
 
 ## API
@@ -29,11 +29,12 @@ Next.js routes live under `/api`, so the spec's endpoints map to:
 
 ## Design decisions
 
-- **Privacy is the core promise.** Whether a profile has liked the user is stored in `profiles.likes_me`, and no endpoint ever selects that column. The only way to learn someone liked you is to like them back, and `/swipe` returns profile details only on a mutual match. `/feed` and `/matches` never expose who liked the user.
-- **No profile appears twice.** `swipes.profile_id` is the primary key, so the database itself rejects a second swipe. The API returns `409` and `/feed` excludes anything already in `swipes`.
-- **Atomic swipes.** Recording a swipe and creating a match happen in a single SQLite transaction, so a swipe is never saved without its match (or vice versa).
-- **Persistence.** All swipes and matches live in SQLite and survive reloads.
+- **Privacy is the core promise.** Whether a profile has liked the user (`likesMe`) lives only in the server-side seed data and is stripped by `publicProfile()` before anything is returned. No endpoint ever exposes it. The only way to learn someone liked you is to like them back, and `/swipe` returns profile details only on a mutual match. `/feed` and `/matches` never reveal who liked the user.
+- **No profile appears twice.** Swipes are stored keyed by profile id. `/feed` excludes anything already swiped, and a repeat `POST /swipe` returns `409`.
+- **Atomic swipe + match.** Reading state, checking for a duplicate, recording the swipe, and creating the match happen in one synchronous step with no awaits in between, so a swipe is never saved without its match.
+- **Persistence.** Swipes and matches survive page reloads and server restarts.
 - **Input validation.** `/swipe` validates `profileId` and `action`, and returns 400, 404, or 409 for bad input.
+- **Why a JSON file.** It has zero native dependencies, so `npm install` works on any OS and Node version. For production I would move to Postgres with a unique constraint on `(user_id, profile_id)` to make the duplicate-swipe guard hold across multiple servers.
 
 ## Assumptions
 
@@ -46,8 +47,8 @@ Next.js routes live under `/api`, so the spec's endpoints map to:
 
 ```
 app/api/{feed,swipe,matches}/route.js   API routes
-lib/db.js                               schema + seeding
-lib/seed.js                             mock profiles
+lib/store.js                            persistence + match logic
+lib/seed.js                             36 mock profiles
 components/                             Discover, SwipeCard, Matches, MatchOverlay, DiscoverTab
 app/page.js                             tab bar (Home / Discover)
 ```
