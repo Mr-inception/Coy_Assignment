@@ -11,8 +11,7 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const profileId = Number(body?.profileId);
-  const action = body?.action;
+  const { profileId, action } = body ?? {};
 
   if (!Number.isInteger(profileId) || !["like", "pass"].includes(action)) {
     return NextResponse.json(

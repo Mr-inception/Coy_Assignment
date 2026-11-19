@@ -7,6 +7,7 @@ export default function Discover({ onViewMatches }) {
   const [queue, setQueue] = useState(null);
   const [match, setMatch] = useState(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -35,10 +36,14 @@ export default function Discover({ onViewMatches }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profileId: profile.id, action }),
       });
-      const data = await res.json();
-      if (data.match) setMatch(data.profile);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.match) setMatch(data.profile);
+      // 409 = already swiped (harmless); anything else means it was not saved
+      else if (!res.ok && res.status !== 409) {
+        setNotice("Couldn't save that swipe. Refresh to try again.");
+      }
     } catch {
-      setError("Could not save your swipe.");
+      setNotice("Couldn't save that swipe. Check your connection.");
     }
   };
 
@@ -50,6 +55,9 @@ export default function Discover({ onViewMatches }) {
 
   return (
     <div className="discover">
+      {notice && (
+        <div className="notice" role="alert" onClick={() => setNotice("")}>{notice}</div>
+      )}
       {top ? (
         <>
           <div className="stack">

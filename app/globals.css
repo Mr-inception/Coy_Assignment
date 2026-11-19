@@ -55,3 +55,4 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
 .match-row img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .match-row h3 { font-size: 17px; }
 .match-row p { font-size: 13px; color: #777; }
+.notice { position: absolute; top: 8px; left: 16px; right: 16px; z-index: 10; background: #1c1c1e; color: #fff; padding: 10px 14px; border-radius: 12px; font-size: 14px; text-align: center; cursor: pointer; }
